@@ -1,0 +1,82 @@
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+
+def calculate_province_statistics(data_file, statistic):
+    """
+    Calculate statistics from the birthdays dataset.
+
+    Parameters:
+    - data_file (str): Path to the data file.
+    - statistic (str): Type of statistic to calculate. Options are "totals", "averages", "maximums".
+
+    Returns:
+    - dict: Calculated statistic results per province.
+    """
+    # Ensure the file exists
+    if not os.path.exists(data_file):
+        raise FileNotFoundError(f"Data file not found at {data_file}. Please check the path.")
+
+    # Read the data
+    data = np.loadtxt(data_file, delimiter='|', dtype=str, skiprows=1)
+
+    # Extract provinces and their data (columns start from index 2)
+    provinces = data[0, 2:]  # Header for provinces
+    province_data = data[:, 2:].astype(int)  # All numerical data
+
+    results = {}
+    if statistic == "totals":
+        # Total birthdays per province
+        totals = province_data.sum(axis=0)
+        results = {province: total for province, total in zip(provinces, totals)}
+
+    elif statistic == "averages":
+        # Average birthdays per day per province
+        averages = province_data.mean(axis=0)
+        results = {province: avg for province, avg in zip(provinces, averages)}
+
+    elif statistic == "maximums":
+        # Maximum birthdays per province and the corresponding day
+        max_values = province_data.max(axis=0)
+        max_days = province_data.argmax(axis=0) + 1  # +1 for 1-based indexing
+        results = {
+            province: {"max": max_val, "day": max_day}
+            for province, max_val, max_day in zip(provinces, max_values, max_days)
+        }
+
+    else:
+        raise ValueError("Invalid statistic type. Choose from 'totals', 'averages', or 'maximums'.")
+
+    return results
+
+# Example usage
+if __name__ == "__main__":
+    data_file = 'tf_birthdays.txt'
+    print("Total birthdays per province:")
+    print(calculate_province_statistics(data_file, "totals"))
+
+    print("Average birthdays per day per province:")
+    print(calculate_province_statistics(data_file, "averages"))
+
+    print("Maximum birthdays per province and corresponding day:")
+    print(calculate_province_statistics(data_file, "maximums"))
+
+# Plot the histogram
+data_file = 'tf_birthdays.txt'
+data = np.loadtxt(data_file, delimiter='|', dtype=str, skiprows=1)
+months = data[:, 1].astype(int)  # Assuming the second column is MONTH
+limburg_birthdays = data[:, 13].astype(int)  # Assuming the 14th column is PROVINCIE_LIMBURG
+
+# Calculate total birthdays per month
+monthly_birthdays = np.zeros(12, dtype=int)
+for month, birthday_count in zip(months, limburg_birthdays):
+    monthly_birthdays[month - 1] += birthday_count
+
+plt.figure(figsize=(10, 6))
+plt.bar(range(1, 13), monthly_birthdays, color='skyblue', edgecolor='black')
+plt.xticks(range(1, 13))
+plt.xlabel('Month')
+plt.ylabel('Number of Birthdays')
+plt.title('Birthdays in Limburg by Month')
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.show()
